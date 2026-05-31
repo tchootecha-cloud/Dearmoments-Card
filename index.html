@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>YouTube QR Code Generator & Clean Player</title>
+    <!-- เรียกใช้คลังสร้าง QR Code ที่เสถียรและฟรีตลอดชีพ -->
+    <script src="https://cloudflare.com"></script>
+    <style>
+        /* สไตล์พื้นฐานของหน้าเว็บ */
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: #f4f7f6;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+        }
+
+        /* ส่วนที่ 1: หน้าจอสร้าง QR Code */
+        .generator-container {
+            background: white;
+            padding: 30px;
+            border-radius: 12px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+            text-align: center;
+            max-width: 400px;
+            width: 90%;
+        }
+        input[type="text"] {
+            width: 100%;
+            padding: 12px;
+            margin: 15px 0;
+            border: 1px solid #ccc;
+            border-radius: 6px;
+            box-sizing: border-box;
+            font-size: 14px;
+        }
+        button {
+            background-color: #ff0000;
+            color: white;
+            border: none;
+            padding: 12px 20px;
+            font-size: 16px;
+            border-radius: 6px;
+            cursor: pointer;
+            width: 100%;
+            font-weight: bold;
+        }
+        button:hover { background-color: #cc0000; }
+        #qrcode {
+            margin-top: 20px;
+            display: flex;
+            justify-content: center;
+        }
+
+        /* ส่วนที่ 2: หน้าจอเครื่องเล่นบนโทรศัพท์เมื่อสแกน */
+        .player-container {
+            display: none; /* ซ่อนไว้ก่อนจนกว่าจะเปิดผ่านลิงก์สแกน */
+            position: fixed;
+            top: 0; left: 0; width: 100vw; height: 100vh;
+            background: #000;
+            z-index: 9999;
+        }
+        /* ขยายตัวเล่นวิดีโอให้เต็มจอ */
+        .video-wrapper {
+            position: relative;
+            width: 100%;
+            height: 100%;
+        }
+        iframe {
+            width: 100%;
+            height: 100%;
+            border: none;
+        }
+
+        /* หน้ากากกรอบสีขาวทับปุ่มและโลโก้ YouTube */
+        .white-mask {
+            position: absolute;
+            background-color: #ffffff;
+            z-index: 10;
+            pointer-events: none; /* ยอมให้สัมผัสทะลุผ่านไปกดเล่นวิดีโอได้ */
+        }
+        /* กรอบบน: บังชื่อช่องและปุ่มแชร์ */
+        .mask-top {
+            top: 0; left: 0; width: 100%; height: 65px;
+        }
+        /* กรอบล่าง: บังโลโก้ YouTube และปุ่มแถบควบคุมบางส่วน */
+        .mask-bottom {
+            bottom: 0; left: 0; width: 100%; height: 55px;
+        }
+    </style>
+</head>
+<body>
+
+    <!-- 1. หน้าจอสร้าง QR CODE -->
+    <div id="generatorView" class="generator-container">
+        <h2>ระบบสร้าง QR Code วิดีโอ</h2>
+        <p style="color: #666; font-size: 14px;">วางลิงก์ YouTube เพื่อสร้าง QR Code แบบไม่มีวันหมดอายุ</p>
+        <input type="text" id="youtubeLink" placeholder="วางลิงก์ YouTube ที่นี่...">
+        <button onclick="generateQR()">สร้าง QR Code</button>
+        <div id="qrcode"></div>
+    </div>
+
+    <!-- 2. หน้าจอเครื่องเล่นบนมือถือ (จะแสดงเมื่อมีพารามิเตอร์ ?v= ในลิงก์) -->
+    <div id="playerView" class="player-container">
+        <div class="video-wrapper">
+            <!-- กรอบสีขาวบังส่วนบน (ชื่อช่อง / แชร์) -->
+            <div class="white-mask mask-top"></div>
+            
+            <!-- ตัวเล่น YouTube Embedded -->
+            <iframe id="ytPlayer" allow="autoplay; encrypted-media" allowfullscreen></iframe>
+            
+            <!-- กรอบสีขาวบังส่วนล่าง (โลโก้ YouTube / ปุ่มไลก์ย่อย) -->
+            <div class="white-mask mask-bottom"></div>
+        </div>
+    </div>
+
+    <script>
+        // ฟังก์ชันดึงค่า ID วิดีโอจากลิงก์ YouTube รูปแบบต่างๆ
+        function getYoutubeId(url) {
+            const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|\&v=)([^#\&\?]*).*/;
+            const match = url.match(regExp);
+            return (match && match[2].length === 11) ? match[2] : null;
+        }
+
+        // ฟังก์ชันสร้าง QR Code
+        function generateQR() {
+            const urlInput = document.getElementById('youtubeLink').value;
+            const videoId = getYoutubeId(urlInput);
+            const qrElement = document.getElementById('qrcode');
+            
+            qrElement.innerHTML = ""; // ล้างค่าเก่า
+
+            if (!videoId) {
+                alert('กรุณาใส่ลิงก์ YouTube ที่ถูกต้องครับ');
+                return;
+            }
+
+            // สร้างลิงก์ปลายทางที่จะให้โทรศัพท์สแกนมาที่เว็บนี้ พร้อมส่ง ID วิดีโอไปด้วย
+            const currentUrl = window.location.href.split('?')[0];
+            const scanUrl = `${currentUrl}?v=${videoId}`;
+
+            // สั่งทำ QR Code
+            new QRCode(qrElement, {
+                text: scanUrl,
+                width: 200,
+                height: 200,
+                colorDark : "#000000",
+                colorLight : "#ffffff",
+                correctLevel : QRCode.CorrectLevel.H
+            });
+        }
+
+        // ตรวจสอบสถานะหน้าเว็บ: ถ้าเป็นการสแกนเข้ามา (มี ?v= ใน URL) ให้แสดงหน้าเล่นวิดีโอทันที
+        window.onload = function() {
+            const urlParams = new URLSearchParams(window.location.search);
+            const videoId = urlParams.get('v');
+
+            if (videoId) {
+                // ซ่อนหน้าสร้าง QR Code และเปิดหน้าเครื่องเล่นเต็มจอ
+                document.getElementById('generatorView').style.display = 'none';
+                document.getElementById('playerView').style.display = 'block';
+                
+                // ตั้งค่าความปลอดภัยบังอินเตอร์เฟส: modestybranding=1 และ rel=0 
+                // ร่วมกับการครอบกรอบสีขาวด้านบน-ล่างที่ตั้งค่าไว้ใน CSS
+                document.getElementById('ytPlayer').src = `https://youtube.com{videoId}?autoplay=1&modestbranding=1&rel=0&controls=1`;
+            }
+        }
+    </script>
+</body>
+</html>
