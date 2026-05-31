@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<title>Memory Gift</title>
+
+<style>
+
+body{
+    margin:0;
+    display:flex;
+    justify-content:center;
+    align-items:center;
+    height:100vh;
+    background:white;
+    font-family:Arial,sans-serif;
+}
+
+.loading{
+    text-align:center;
+}
+
+.heart{
+    font-size:70px;
+}
+
+h2{
+    margin-top:10px;
+}
+
+</style>
+
+<script>
+
+window.onload = function(){
+
+    const params =
+    new URLSearchParams(window.location.search);
+
+    const fileId =
+    params.get("video");
+
+    setTimeout(function(){
+
+        window.location.href =
+        "https://drive.google.com/file/d/"
+        + fileId +
+        "/view";
+
+    },1000);
+
+}
+
+</script>
+
+</head>
+
+<body>
+
+<div class="loading">
+
+<div class="heart">❤️</div>
+
+<h2>Loading Memory...</h2>
+
+<p>Please wait</p>
+
+</div>
+
+</body>
+</html>
