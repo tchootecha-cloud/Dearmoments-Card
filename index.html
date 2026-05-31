@@ -1,169 +1,364 @@
 <!DOCTYPE html>
 <html lang="th">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>YouTube & Shorts QR Code Generator</title>
-    <!-- เรียกใช้คลังสร้าง QR Code ที่เสถียรและฟรีตลอดชีพ -->
-    <script src="https://cloudflare.com"></script>
-    <style>
-        body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            margin: 0;
-            padding: 0;
-            background-color: #f4f7f6;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            min-height: 100vh;
-        }
-        .generator-container {
-            background: white;
-            padding: 30px;
-            border-radius: 12px;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
-            text-align: center;
-            max-width: 400px;
-            width: 90%;
-        }
-        input[type="text"] {
-            width: 100%;
-            padding: 12px;
-            margin: 15px 0;
-            border: 1px solid #ccc;
-            border-radius: 6px;
-            box-sizing: border-box;
-            font-size: 14px;
-        }
-        button {
-            background-color: #ff0000;
-            color: white;
-            border: none;
-            padding: 12px 20px;
-            font-size: 16px;
-            border-radius: 6px;
-            cursor: pointer;
-            width: 100%;
-            font-weight: bold;
-        }
-        button:hover { background-color: #cc0000; }
-        #qrcode {
-            margin-top: 20px;
-            display: flex;
-            justify-content: center;
-            flex-direction: column;
-            align-items: center;
-        }
-        #qrcode img {
-            margin-top: 10px;
-            border: 1px solid #eee;
-            padding: 10px;
-            background: #fff;
-        }
-        .player-container {
-            display: none;
-            position: fixed;
-            top: 0; left: 0; width: 100vw; height: 100vh;
-            background: #000;
-            z-index: 9999;
-        }
-        .video-wrapper {
-            position: relative;
-            width: 100%;
-            height: 100%;
-        }
-        iframe {
-            width: 100%;
-            height: 100%;
-            border: none;
-        }
-        .white-mask {
-            position: absolute;
-            background-color: #ffffff;
-            z-index: 10;
-            pointer-events: none;
-        }
-        /* กรอบบน: บังชื่อคลิป ชื่อช่อง และปุ่มแชร์ */
-        .mask-top {
-            top: 0; left: 0; width: 100%; height: 70px;
-        }
-        /* กรอบล่าง: บังโลโก้ YouTube และแถบควบคุมบางส่วน */
-        .mask-bottom {
-            bottom: 0; left: 0; width: 100%; height: 60px;
-        }
-    </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<title>YouTube QR Code Generator</title>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+
+<style>
+
+*{
+    margin:0;
+    padding:0;
+    box-sizing:border-box;
+}
+
+body{
+    font-family:Segoe UI,Tahoma,sans-serif;
+    background:#f4f6f9;
+    min-height:100vh;
+}
+
+.generator-container{
+    max-width:500px;
+    width:95%;
+    margin:40px auto;
+    background:#fff;
+    padding:25px;
+    border-radius:15px;
+    box-shadow:0 5px 20px rgba(0,0,0,.12);
+    text-align:center;
+}
+
+h1{
+    color:#ff0000;
+    margin-bottom:10px;
+}
+
+.subtitle{
+    color:#666;
+    margin-bottom:20px;
+}
+
+input{
+    width:100%;
+    padding:14px;
+    border:1px solid #ddd;
+    border-radius:8px;
+    font-size:15px;
+    margin-bottom:15px;
+}
+
+button{
+    width:100%;
+    padding:14px;
+    border:none;
+    border-radius:8px;
+    cursor:pointer;
+    font-size:16px;
+    font-weight:bold;
+    transition:.2s;
+}
+
+.generate-btn{
+    background:#ff0000;
+    color:#fff;
+}
+
+.generate-btn:hover{
+    background:#d40000;
+}
+
+.download-btn{
+    background:#28a745;
+    color:#fff;
+    margin-top:15px;
+    display:none;
+}
+
+.download-btn:hover{
+    background:#218838;
+}
+
+#qrcode{
+    margin-top:25px;
+    display:flex;
+    justify-content:center;
+}
+
+#qrcode img,
+#qrcode canvas{
+    padding:10px;
+    background:#fff;
+    border:1px solid #eee;
+    border-radius:10px;
+}
+
+.player-container{
+    display:none;
+    width:100vw;
+    height:100vh;
+    background:#000;
+}
+
+.player-container iframe{
+    width:100%;
+    height:100%;
+    border:none;
+}
+
+.status{
+    margin-top:15px;
+    color:#666;
+    font-size:14px;
+}
+
+</style>
 </head>
+
 <body>
 
-    <!-- ส่วนที่ 1: หน้าจอสร้าง QR CODE -->
-    <div id="generatorView" class="generator-container">
-        <h2>ระบบสร้าง QR Code วิดีโอ</h2>
-        <p style="color: #666; font-size: 14px;">รองรับทั้งลิงก์คลิปยาวปกติ และคลิปสั้น Shorts</p>
-        <input type="text" id="youtubeLink" placeholder="วางลิงก์ YouTube หรือ Shorts ที่นี่...">
-        <button onclick="generateQR()">สร้าง QR Code</button>
+<div id="generatorView">
+
+    <div class="generator-container">
+
+        <h1>🎥 YouTube QR Generator</h1>
+
+        <p class="subtitle">
+            รองรับ YouTube Video และ Shorts
+        </p>
+
+        <input
+            type="text"
+            id="youtubeLink"
+            placeholder="วางลิงก์ YouTube หรือ Shorts">
+
+        <button
+            class="generate-btn"
+            onclick="generateQR()">
+
+            สร้าง QR Code
+
+        </button>
+
         <div id="qrcode"></div>
+
+        <button
+            id="downloadBtn"
+            class="download-btn"
+            onclick="downloadQR()">
+
+            ดาวน์โหลด QR Code
+
+        </button>
+
+        <div id="status" class="status"></div>
+
     </div>
 
-    <!-- ส่วนที่ 2: หน้าจอเครื่องเล่นบนมือถือเมื่อมีการสแกนเข้ามา -->
-    <div id="playerView" class="player-container">
-        <div class="video-wrapper">
-            <div class="white-mask mask-top"></div>
-            <iframe id="ytPlayer" allow="autoplay; encrypted-media" allowfullscreen></iframe>
-            <div class="white-mask mask-bottom"></div>
-        </div>
-    </div>
+</div>
 
-    <script>
-        // ฟังก์ชันดึงรหัสวิดีโอ 11 หลักฉบับแก้ไขแล้ว ปลอดภัยและแม่นยำสูง
-        function extractYoutubeId(url) {
-            // รองรับรูปแบบ: watch?v=, shorts/, youtu.be/ และ embed/
-            const regExp = /^.*(?:(?:youtu.be\/|v\/|vi\/|u\/\w\/|embed\/|shorts\/)|(?:(?:watch)?\?v(?:i)?=|\&v(?:i)?=))([^#\&\?]*).*/;
-            const match = url.match(regExp);
-            if (match && match[1] && match[1].length === 11) {
-                return match[1];
-            }
-            return null;
+<div id="playerView" class="player-container">
+
+    <iframe
+        id="ytPlayer"
+        allow="autoplay; encrypted-media"
+        allowfullscreen>
+    </iframe>
+
+</div>
+
+<script>
+
+function extractYoutubeId(url){
+
+    const patterns = [
+
+        /(?:youtube\.com\/watch\?v=)([a-zA-Z0-9_-]{11})/,
+
+        /(?:youtube\.com\/shorts\/)([a-zA-Z0-9_-]{11})/,
+
+        /(?:youtu\.be\/)([a-zA-Z0-9_-]{11})/,
+
+        /(?:youtube\.com\/embed\/)([a-zA-Z0-9_-]{11})/
+
+    ];
+
+    for(const pattern of patterns){
+
+        const match = url.match(pattern);
+
+        if(match){
+            return match[1];
         }
+    }
 
-        // ฟังก์ชันสร้าง QR Code
-        function generateQR() {
-            const urlInput = document.getElementById('youtubeLink').value.trim();
-            const videoId = extractYoutubeId(urlInput);
-            const qrElement = document.getElementById('qrcode');
-            
-            qrElement.innerHTML = ""; // ล้างรูปภาพเก่า
+    return null;
+}
 
-            if (!videoId) {
-                alert('กรุณากรอกลิงก์ YouTube หรือ Shorts ที่ถูกต้องครับ');
-                return;
-            }
+function generateQR(){
 
-            // ตัดเฉพาะ URL หลักของเว็บ ป้องกันพารามิเตอร์ซ้ำซ้อน
-            const cleanUrl = window.location.href.split('?')[0];
-            const scanUrl = cleanUrl + "?v=" + videoId;
+    const input =
+        document.getElementById(
+            "youtubeLink"
+        ).value.trim();
 
-            // สั่งคลังโครงสร้างวิดีโอสร้างรูปภาพ QR Code ขึ้นมาแสดงบนจอ
-            new QRCode(qrElement, {
-                text: scanUrl,
-                width: 200,
-                height: 200,
-                colorDark : "#000000",
-                colorLight : "#ffffff",
-                correctLevel : QRCode.CorrectLevel.H
-            });
-        }
+    const videoId =
+        extractYoutubeId(input);
 
-        // ตรวจสอบเมื่อเปิดเว็บ: ถ้าสแกนเข้ามาให้เปิดหน้าเครื่องเล่นวิดีโอทันที
-        window.onload = function() {
-            const urlParams = new URLSearchParams(window.location.search);
-            const videoId = urlParams.get('v');
+    const qrDiv =
+        document.getElementById(
+            "qrcode"
+        );
 
-            if (videoId) {
-                document.getElementById('generatorView').style.display = 'none';
-                document.getElementById('playerView').style.display = 'block';
-                document.getElementById('ytPlayer').src = "https://youtube.com" + videoId + "?autoplay=1&modestbranding=1&rel=0&controls=1";
-            }
-        }
-    </script>
+    const status =
+        document.getElementById(
+            "status"
+        );
+
+    qrDiv.innerHTML = "";
+
+    document
+        .getElementById(
+            "downloadBtn"
+        ).style.display =
+        "none";
+
+    if(!videoId){
+
+        status.innerHTML =
+            "❌ ลิงก์ YouTube ไม่ถูกต้อง";
+
+        return;
+    }
+
+    const baseUrl =
+        window.location.origin +
+        window.location.pathname;
+
+    const qrUrl =
+        baseUrl +
+        "?v=" +
+        videoId;
+
+    new QRCode(qrDiv,{
+
+        text: qrUrl,
+
+        width:250,
+
+        height:250,
+
+        colorDark:"#000000",
+
+        colorLight:"#ffffff",
+
+        correctLevel:
+        QRCode.CorrectLevel.H
+
+    });
+
+    status.innerHTML =
+        "✅ สร้าง QR Code สำเร็จ";
+
+    setTimeout(()=>{
+
+        document
+            .getElementById(
+                "downloadBtn"
+            ).style.display =
+            "block";
+
+    },300);
+}
+
+function downloadQR(){
+
+    const canvas =
+        document.querySelector(
+            "#qrcode canvas"
+        );
+
+    if(canvas){
+
+        const link =
+            document.createElement(
+                "a"
+            );
+
+        link.download =
+            "youtube-qrcode.png";
+
+        link.href =
+            canvas.toDataURL(
+                "image/png"
+            );
+
+        link.click();
+
+        return;
+    }
+
+    const img =
+        document.querySelector(
+            "#qrcode img"
+        );
+
+    if(img){
+
+        const link =
+            document.createElement(
+                "a"
+            );
+
+        link.download =
+            "youtube-qrcode.png";
+
+        link.href =
+            img.src;
+
+        link.click();
+    }
+}
+
+window.onload = function(){
+
+    const params =
+        new URLSearchParams(
+            window.location.search
+        );
+
+    const videoId =
+        params.get("v");
+
+    if(videoId){
+
+        document
+            .getElementById(
+                "generatorView"
+            ).style.display =
+            "none";
+
+        document
+            .getElementById(
+                "playerView"
+            ).style.display =
+            "block";
+
+        document
+            .getElementById(
+                "ytPlayer"
+            ).src =
+            "https://www.youtube.com/embed/" +
+            videoId +
+            "?autoplay=1&rel=0&modestbranding=1&playsinline=1";
+    }
+}
+
+</script>
+
 </body>
 </html>
