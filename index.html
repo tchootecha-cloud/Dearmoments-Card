@@ -7,7 +7,6 @@
     <!-- เรียกใช้คลังสร้าง QR Code ที่เสถียรและฟรีตลอดชีพ -->
     <script src="https://cloudflare.com"></script>
     <style>
-        /* สไตล์หน้าจอพื้นหลัง */
         body {
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
             margin: 0;
@@ -18,7 +17,6 @@
             align-items: center;
             min-height: 100vh;
         }
-        /* กล่องตัวสร้าง QR Code */
         .generator-container {
             background: white;
             padding: 30px;
@@ -49,8 +47,6 @@
             font-weight: bold;
         }
         button:hover { background-color: #cc0000; }
-        
-        /* ส่วนแสดงผล QR Code */
         #qrcode {
             margin-top: 20px;
             display: flex;
@@ -64,8 +60,6 @@
             padding: 10px;
             background: #fff;
         }
-
-        /* หน้าจอเครื่องเล่นบนมือถือเมื่อสแกน */
         .player-container {
             display: none;
             position: fixed;
@@ -83,13 +77,11 @@
             height: 100%;
             border: none;
         }
-        
-        /* หน้ากากกรอบสีขาวทับส่วนอินเตอร์เฟส YouTube */
         .white-mask {
             position: absolute;
             background-color: #ffffff;
             z-index: 10;
-            pointer-events: none; /* ยอมให้ทัชสกรีนทะลุผ่านไปกดเล่นคลิปได้ */
+            pointer-events: none;
         }
         /* กรอบบน: บังชื่อคลิป ชื่อช่อง และปุ่มแชร์ */
         .mask-top {
@@ -115,67 +107,60 @@
     <!-- ส่วนที่ 2: หน้าจอเครื่องเล่นบนมือถือเมื่อมีการสแกนเข้ามา -->
     <div id="playerView" class="player-container">
         <div class="video-wrapper">
-            <!-- แถบสีขาวด้านบน -->
             <div class="white-mask mask-top"></div>
-            
-            <!-- ตัวเล่นวิดีโอ -->
             <iframe id="ytPlayer" allow="autoplay; encrypted-media" allowfullscreen></iframe>
-            
-            <!-- แถบสีขาวด้านล่าง -->
             <div class="white-mask mask-bottom"></div>
         </div>
     </div>
 
     <script>
-        // ฟังก์ชันแกะรหัสวิดีโอตัวใหม่ (Regex) เสถียรและแม่นยำที่สุด รองรับทุกลิงก์บนโลก
+        // ฟังก์ชันดึงรหัสวิดีโอ 11 หลักฉบับแก้ไขแล้ว ปลอดภัยและแม่นยำสูง
         function extractYoutubeId(url) {
-            // แพทเทิร์นตรวจสอบลิงก์สากล รองรับ watch?v=, shorts/, youtu.be/ และ embed/
+            // รองรับรูปแบบ: watch?v=, shorts/, youtu.be/ และ embed/
             const regExp = /^.*(?:(?:youtu.be\/|v\/|vi\/|u\/\w\/|embed\/|shorts\/)|(?:(?:watch)?\?v(?:i)?=|\&v(?:i)?=))([^#\&\?]*).*/;
             const match = url.match(regExp);
-            return (match && match[1].length === 11) ? match[1] : null;
+            if (match && match[1] && match[1].length === 11) {
+                return match[1];
+            }
+            return null;
         }
 
-        // ฟังก์ชันสร้าง QR Code เมื่อกดปุ่ม
+        // ฟังก์ชันสร้าง QR Code
         function generateQR() {
             const urlInput = document.getElementById('youtubeLink').value.trim();
             const videoId = extractYoutubeId(urlInput);
             const qrElement = document.getElementById('qrcode');
             
-            // ล้างภาพเก่าออกก่อน
-            qrElement.innerHTML = ""; 
+            qrElement.innerHTML = ""; // ล้างรูปภาพเก่า
 
-            // ถ้าแกะลิงก์ไม่สำเร็จ ให้แจ้งเตือนและหยุดทำงานอย่างปลอดภัย
             if (!videoId) {
                 alert('กรุณากรอกลิงก์ YouTube หรือ Shorts ที่ถูกต้องครับ');
                 return;
             }
 
-            // แยกและประกอบ URL ปลายทางสำหรับแชร์ตัวใหม่
+            // ตัดเฉพาะ URL หลักของเว็บ ป้องกันพารามิเตอร์ซ้ำซ้อน
             const cleanUrl = window.location.href.split('?')[0];
             const scanUrl = cleanUrl + "?v=" + videoId;
 
-            // สั่งทำงานเครื่องมือสร้าง QR Code
+            // สั่งคลังโครงสร้างวิดีโอสร้างรูปภาพ QR Code ขึ้นมาแสดงบนจอ
             new QRCode(qrElement, {
                 text: scanUrl,
-                width: 210,
-                height: 210,
+                width: 200,
+                height: 200,
                 colorDark : "#000000",
                 colorLight : "#ffffff",
                 correctLevel : QRCode.CorrectLevel.H
             });
         }
 
-        // ส่วนตรวจสอบเมื่อเปิดลิงก์: หากสแกนเข้ามาผ่านโทรศัพท์มือถือ
+        // ตรวจสอบเมื่อเปิดเว็บ: ถ้าสแกนเข้ามาให้เปิดหน้าเครื่องเล่นวิดีโอทันที
         window.onload = function() {
             const urlParams = new URLSearchParams(window.location.search);
             const videoId = urlParams.get('v');
 
             if (videoId) {
-                // เปลี่ยนหน้าแอปสลับไปหน้าเล่นวิดีโอทันที
                 document.getElementById('generatorView').style.display = 'none';
                 document.getElementById('playerView').style.display = 'block';
-                
-                // ตั้งค่าฝังเครื่องเล่นแบบดึงเฉพาะตัววิดีโอเพียวๆ มาแสดง พร้อมปิดวิดีโอแนะนำท้ายคลิป
                 document.getElementById('ytPlayer').src = "https://youtube.com" + videoId + "?autoplay=1&modestbranding=1&rel=0&controls=1";
             }
         }
