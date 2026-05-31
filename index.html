@@ -7,7 +7,6 @@
     <!-- เรียกใช้คลังสร้าง QR Code ที่เสถียรและฟรีตลอดชีพ -->
     <script src="https://cloudflare.com"></script>
     <style>
-        /* สไตล์พื้นฐานของหน้าเว็บ */
         body {
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
             margin: 0;
@@ -18,8 +17,6 @@
             align-items: center;
             min-height: 100vh;
         }
-
-        /* ส่วนที่ 1: หน้าจอสร้าง QR Code */
         .generator-container {
             background: white;
             padding: 30px;
@@ -54,17 +51,22 @@
             margin-top: 20px;
             display: flex;
             justify-content: center;
+            flex-direction: column;
+            align-items: center;
         }
-
-        /* ส่วนที่ 2: หน้าจอเครื่องเล่นบนโทรศัพท์เมื่อสแกน */
+        #qrcode img {
+            margin-top: 10px;
+            border: 1px solid #eee;
+            padding: 10px;
+            background: #fff;
+        }
         .player-container {
-            display: none; /* ซ่อนไว้ก่อนจนกว่าจะเปิดผ่านลิงก์สแกน */
+            display: none;
             position: fixed;
             top: 0; left: 0; width: 100vw; height: 100vh;
             background: #000;
             z-index: 9999;
         }
-        /* ขยายตัวเล่นวิดีโอให้เต็มจอ */
         .video-wrapper {
             position: relative;
             width: 100%;
@@ -75,21 +77,17 @@
             height: 100%;
             border: none;
         }
-
-        /* หน้ากากกรอบสีขาวทับปุ่มและโลโก้ YouTube */
         .white-mask {
             position: absolute;
             background-color: #ffffff;
             z-index: 10;
-            pointer-events: none; /* ยอมให้สัมผัสทะลุผ่านไปกดเล่นวิดีโอได้ */
+            pointer-events: none;
         }
-        /* กรอบบน: บังชื่อช่องและปุ่มแชร์ */
         .mask-top {
             top: 0; left: 0; width: 100%; height: 65px;
         }
-        /* กรอบล่าง: บังโลโก้ YouTube และปุ่มแถบควบคุมบางส่วน */
         .mask-bottom {
-            bottom: 0; left: 0; width: 100%; height: 55px;
+            bottom: 0; left: 0; width: 100%; height: 60px;
         }
     </style>
 </head>
@@ -104,46 +102,40 @@
         <div id="qrcode"></div>
     </div>
 
-    <!-- 2. หน้าจอเครื่องเล่นบนมือถือ (จะแสดงเมื่อมีพารามิเตอร์ ?v= ในลิงก์) -->
+    <!-- 2. หน้าจอเครื่องเล่นบนมือถือ -->
     <div id="playerView" class="player-container">
         <div class="video-wrapper">
-            <!-- กรอบสีขาวบังส่วนบน (ชื่อช่อง / แชร์) -->
             <div class="white-mask mask-top"></div>
-            
-            <!-- ตัวเล่น YouTube Embedded -->
             <iframe id="ytPlayer" allow="autoplay; encrypted-media" allowfullscreen></iframe>
-            
-            <!-- กรอบสีขาวบังส่วนล่าง (โลโก้ YouTube / ปุ่มไลก์ย่อย) -->
             <div class="white-mask mask-bottom"></div>
         </div>
     </div>
 
     <script>
-        // ฟังก์ชันดึงค่า ID วิดีโอจากลิงก์ YouTube รูปแบบต่างๆ
+        // ฟังก์ชันดึงไอดีวิดีโอแบบเสถียร รองรับทุกลิงก์รวมถึง youtu.be
         function getYoutubeId(url) {
             const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|\&v=)([^#\&\?]*).*/;
             const match = url.match(regExp);
             return (match && match[2].length === 11) ? match[2] : null;
         }
 
-        // ฟังก์ชันสร้าง QR Code
         function generateQR() {
-            const urlInput = document.getElementById('youtubeLink').value;
+            const urlInput = document.getElementById('youtubeLink').value.trim();
             const videoId = getYoutubeId(urlInput);
             const qrElement = document.getElementById('qrcode');
             
-            qrElement.innerHTML = ""; // ล้างค่าเก่า
+            qrElement.innerHTML = ""; 
 
             if (!videoId) {
-                alert('กรุณาใส่ลิงก์ YouTube ที่ถูกต้องครับ');
+                alert('กรุณาใส่ลิงก์ YouTube ที่ถูกต้องครับ ตัวอย่างเช่น https://youtu.be... หรือ https://youtube.com...');
                 return;
             }
 
-            // สร้างลิงก์ปลายทางที่จะให้โทรศัพท์สแกนมาที่เว็บนี้ พร้อมส่ง ID วิดีโอไปด้วย
+            // คดแยก URL ปลายทางให้ถูกต้องแม่นยำ
             const currentUrl = window.location.href.split('?')[0];
-            const scanUrl = `${currentUrl}?v=${videoId}`;
+            const scanUrl = currentUrl + "?v=" + videoId;
 
-            // สั่งทำ QR Code
+            // สั่งสร้าง QR Code
             new QRCode(qrElement, {
                 text: scanUrl,
                 width: 200,
@@ -154,18 +146,13 @@
             });
         }
 
-        // ตรวจสอบสถานะหน้าเว็บ: ถ้าเป็นการสแกนเข้ามา (มี ?v= ใน URL) ให้แสดงหน้าเล่นวิดีโอทันที
         window.onload = function() {
             const urlParams = new URLSearchParams(window.location.search);
             const videoId = urlParams.get('v');
 
             if (videoId) {
-                // ซ่อนหน้าสร้าง QR Code และเปิดหน้าเครื่องเล่นเต็มจอ
                 document.getElementById('generatorView').style.display = 'none';
                 document.getElementById('playerView').style.display = 'block';
-                
-                // ตั้งค่าความปลอดภัยบังอินเตอร์เฟส: modestybranding=1 และ rel=0 
-                // ร่วมกับการครอบกรอบสีขาวด้านบน-ล่างที่ตั้งค่าไว้ใน CSS
                 document.getElementById('ytPlayer').src = `https://youtube.com{videoId}?autoplay=1&modestbranding=1&rel=0&controls=1`;
             }
         }
